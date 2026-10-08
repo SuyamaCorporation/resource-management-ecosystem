@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resource Management Ecosystem</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  canvas { border-radius: 8px; }
+  .chart-bar { transition: height 0.3s; }
+</style>
+</head>
+<body class="bg-gray-950 text-white min-h-screen">
+<div class="max-w-5xl mx-auto p-4">
+  <h1 class="text-2xl font-bold text-center text-lime-400 mb-1">Resource Management Ecosystem</h1>
+  <p class="text-center text-gray-400 text-sm mb-4">Balance predator/prey populations and environmental harvesting</p>
+
+  <div class="flex flex-wrap gap-4 justify-center">
+    <div>
+      <canvas id="canvas" width="500" height="380" class="bg-gray-900"></canvas>
+      <div class="flex gap-4 mt-2 justify-center text-xs">
+        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-green-500 inline-block"></span>Plants</span>
+        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-blue-400 inline-block"></span>Prey</span>
+        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-red-500 inline-block"></span>Predator</span>
+        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-amber-400 inline-block"></span>Human</span>
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-3 w-60">
+      <div class="bg-gray-800 rounded-xl p-4">
+        <h2 class="font-semibold text-lime-300 mb-2">Presets</h2>
+        <div class="grid grid-cols-2 gap-1.5 text-xs">
+          <button onclick="loadPreset('balance')" class="bg-green-800 hover:bg-green-700 px-2 py-1.5 rounded">Balanced</button>
+          <button onclick="loadPreset('overhunt')" class="bg-orange-800 hover:bg-orange-700 px-2 py-1.5 rounded">Overhunt</button>
+          <button onclick="loadPreset('boom')" class="bg-blue-800 hover:bg-blue-700 px-2 py-1.5 rounded">Prey Boom</button>
+          <button onclick="loadPreset('collapse')" class="bg-red-800 hover:bg-red-700 px-2 py-1.5 rounded">Collapse</button>
+        </div>
+      </div>
+
+      <div class="bg-gray-800 rounded-xl p-4">
+        <h2 class="font-semibold text-lime-300 mb-3">Parameters</h2>
+        <div class="space-y-2 text-xs">
+          <div>
+            <label class="flex justify-between text-green-400"><span>Plant Growth</span><span id="v-pgrow">0.05</span></label>
+            <input type="range" id="r-pgrow" min="1" max="20" value="5" class="w-full accent-green-500">
+          </div>
+          <div>
+            <label class="flex justify-between text-blue-400"><span>Prey Repro</span><span id="v-prey">0.04</span></label>
+            <input type="range" id="r-prey" min="1" max="20" value="4" class="w-full accent-blue-500">
+          </div>
+          <div>
+            <label class="flex justify-between text-red-400"><span>Predator Hunger</span><span id="v-pred">0.03</span></label>
+            <input type="range" id="r-pred" min="1" max="20" value="3" class="w-full accent-red-500">
+          </div>
+          <div>
+            <label class="flex justify-between text-amber-400"><span>Harvest Rate</span><span id="v-harv">0.02</span></label>
+            <input type="range" id="r-harv" min="0" max="20" value="2" class="w-full accent-amber-500">
+          </div>
+          <div>
+            <label class="flex justify-between text-purple-400"><span>Climate Stress</span><span id="v-clim">0.00</span></label>
+            <input type="range" id="r-clim" min="0" max="15" value="0" class="w-full accent-purple-500">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-3">
+          <button onclick="togglePause()" id="btn-pause" class="flex-1 bg-lime-700 hover:bg-lime-600 px-2 py-1.5 rounded text-xs">Pause</button>
+          <button onclick="resetSim()" class="flex-1 bg-gray-600 hover:bg-gray-500 px-2 py-1.5 rounded text-xs">Reset</button>
+        </div>
+      </div>
+
+      <div class="bg-gray-800 rounded-xl p-4">
+        <h2 class="font-semibold text-lime-300 mb-2">Populations</h2>
+        <div class="space-y-1.5 text-xs">
+          <div class="flex justify-between"><span class="text-green-400">Plants</span><span id="p-plant" class="font-mono">-</span></div>
+          <div class="flex justify-between"><span class="text-blue-400">Prey</span><span id="p-prey" class="font-mono">-</span></div>
+          <div class="flex justify-between"><span class="text-red-400">Predators</span><span id="p-pred" class="font-mono">-</span></div>
+          <div class="flex justify-between"><span class="text-amber-400">Humans</span><span id="p-hum" class="font-mono">-</span></div>
+          <hr class="border-gray-600">
+          <div class="flex justify-between"><span class="text-gray-400">Year</span><span id="p-year" class="font-mono text-white">0</span></div>
+          <div class="flex justify-between"><span class="text-gray-400">Harvest</span><span id="p-harv" class="font-mono text-amber-400">0</span></div>
+          <div class="flex justify-between"><span class="text-gray-400">Status</span><span id="p-status" class="font-bold text-lime-400">Stable</span></div>
+        </div>
+      </div>
+
+      <div class="bg-gray-800 rounded-xl p-3">
+        <h2 class="font-semibold text-lime-300 mb-1 text-sm">Events</h2>
+        <div id="event-log" class="text-xs text-gray-400 space-y-0.5 max-h-20 overflow-y-auto"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+let state, agents, year, totalHarvest, paused = false;
+let popHistory = { plant: [], prey: [], pred: [], hum: [] };
+
+function makeState() {
+  return { plant: 300, prey: 100, pred: 30, hum: 20 };
+}
+
+function resetSim() {
+  state = makeState();
+  year = 0; totalHarvest = 0;
+  popHistory = { plant: [], prey: [], pred: [], hum: [] };
+  spawnAgents();
+  document.getElementById('event-log').innerHTML = '';
+}
+
+function loadPreset(name) {
+  const presets = {
+    balance: { pgrow: 5, prey: 4, pred: 3, harv: 2, clim: 0 },
+    overhunt: { pgrow: 5, prey: 6, pred: 3, harv: 15, clim: 0 },
+    boom: { pgrow: 15, prey: 12, pred: 2, harv: 3, clim: 0 },
+    collapse: { pgrow: 3, prey: 4, pred: 12, harv: 8, clim: 10 },
+  };
+  const p = presets[name];
+  document.getElementById('r-pgrow').value = p.pgrow;
+  document.getElementById('r-prey').value = p.prey;
+  document.getElementById('r-pred').value = p.pred;
+  document.getElementById('r-harv').value = p.harv;
+  document.getElementById('r-clim').value = p.clim;
+  ['pgrow','prey','pred','harv','clim'].forEach(updateLabel);
+  resetSim();
+}
+
+function updateLabel(id) {
+  const val = parseInt(document.getElementById('r-'+id).value) / 100;
+  document.getElementById('v-'+id).textContent = val.toFixed(2);
+}
+
+['pgrow','prey','pred','harv','clim'].forEach(id => {
+  document.getElementById('r-'+id).addEventListener('input', () => updateLabel(id));
+});
+
+function getParam(id) { return parseInt(document.getElementById('r-'+id).value) / 100; }
+
+// Simple agents for visual
+let agentList = [];
+function spawnAgents() {
+  agentList = [];
+  for (let i = 0; i < 60; i++) agentList.push({ type: 'plant', x: Math.random()*W, y: Math.random()*H, vx:0, vy:0 });
+  for (let i = 0; i < 30; i++) agentList.push({ type: 'prey', x: Math.random()*W, y: Math.random()*H, vx:(Math.random()-0.5)*2, vy:(Math.random()-0.5)*2 });
+  for (let i = 0; i < 12; i++) agentList.push({ type: 'pred', x: Math.random()*W, y: Math.random()*H, vx:(Math.random()-0.5)*3, vy:(Math.random()-0.5)*3 });
+  for (let i = 0; i < 8; i++) agentList.push({ type: 'hum', x: Math.random()*W, y: Math.random()*H, vx:(Math.random()-0.5)*1.5, vy:(Math.random()-0.5)*1.5 });
+}
+
+function lotkaVolterra() {
+  const pgrow = getParam('pgrow');
+  const preyR = getParam('prey');
+  const predH = getParam('pred');
+  const harv = getParam('harv');
+  const clim = getParam('clim');
+  const dt = 0.2;
+
+  const { plant: P, prey: N, pred: Q, hum: H_pop } = state;
+  const plantCap = 500 * (1 - clim * 2);
+
+  const dP = pgrow * P * (1 - P/Math.max(1, plantCap)) - 0.003 * P * N - harv * P * 0.01;
+  const dN = preyR * N * (Math.min(P, 400)/400) - 0.001 * N * Q - harv * N * 0.02 - clim * N * 0.01;
+  const dQ = 0.0005 * N * Q * predH * 10 - 0.04 * Q - harv * Q * 0.01;
+  const dH = 0.01 * (harv * 10) * H_pop * (N / Math.max(1, N + 50)) - 0.005 * H_pop;
+
+  state.plant = Math.max(0, P + dP * dt);
+  state.prey = Math.max(0, N + dN * dt);
+  state.pred = Math.max(0, Q + dQ * dt);
+  state.hum = Math.max(0, H_pop + dH * dt);
+  totalHarvest += harv * (N + P * 0.1) * 0.01;
+}
+
+function syncAgents() {
+  const targets = { plant: Math.round(state.plant/10), prey: Math.round(state.prey/4), pred: Math.round(state.pred/3), hum: Math.round(state.hum/2) };
+  Object.entries(targets).forEach(([type, count]) => {
+    const current = agentList.filter(a => a.type === type);
+    while (current.length < Math.min(count, 80)) {
+      const a = { type, x: Math.random()*W, y: Math.random()*H };
+      const speeds = { plant: [0,0], prey: [2,2], pred: [3,3], hum: [1.5,1.5] };
+      a.vx = (Math.random()-0.5)*speeds[type][0];
+      a.vy = (Math.random()-0.5)*speeds[type][1];
+      agentList.push(a); current.push(a);
+    }
+    while (current.length > Math.min(count, 80) && current.length > 0) {
+      const idx = agentList.indexOf(current.pop());
+      if (idx >= 0) agentList.splice(idx, 1);
+    }
+  });
+}
+
+function updateAgents() {
+  agentList.forEach(a => {
+    if (a.type === 'plant') return;
+    a.vx += (Math.random()-0.5)*0.4;
+    a.vy += (Math.random()-0.5)*0.4;
+    const spd = Math.hypot(a.vx, a.vy);
+    const maxSpd = a.type === 'pred' ? 3 : a.type === 'prey' ? 2 : 1.5;
+    if (spd > maxSpd) { a.vx *= maxSpd/spd; a.vy *= maxSpd/spd; }
+    a.x += a.vx; a.y += a.vy;
+    if (a.x < 0) { a.x = 0; a.vx *= -1; }
+    if (a.x > W) { a.x = W; a.vx *= -1; }
+    if (a.y < 0) { a.y = 0; a.vy *= -1; }
+    if (a.y > H) { a.y = H; a.vy *= -1; }
+  });
+}
+
+function draw() {
+  ctx.fillStyle = '#030712';
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid background
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  for (let x = 0; x < W; x+=40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for (let y = 0; y < H; y+=40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+  const COLORS = { plant: '#22c55e', prey: '#60a5fa', pred: '#ef4444', hum: '#fbbf24' };
+  const SIZES = { plant: 4, prey: 5, pred: 7, hum: 6 };
+  agentList.forEach(a => {
+    ctx.beginPath();
+    ctx.arc(a.x, a.y, SIZES[a.type], 0, Math.PI*2);
+    ctx.fillStyle = COLORS[a.type];
+    ctx.globalAlpha = 0.8;
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+
+  // Mini population graph
+  const gh = 60, gw = 180, gx = W-gw-8, gy = 8;
+  ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(gx, gy, gw, gh+16);
+  const maxPop = Math.max(...popHistory.prey.slice(-50), 1);
+  ['plant','prey','pred','hum'].forEach((type, ti) => {
+    const hist = popHistory[type].slice(-50);
+    if (hist.length < 2) return;
+    const colors = ['#22c55e','#60a5fa','#ef4444','#fbbf24'];
+    ctx.strokeStyle = colors[ti]; ctx.lineWidth = 1.5; ctx.beginPath();
+    hist.forEach((v, i) => {
+      const x = gx + (i / 50) * gw;
+      const maxV = Math.max(...popHistory[type].slice(-50), 1);
+      const y = gy + gh - (v / maxV) * gh;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  });
+}
+
+function addEvent(msg) {
+  const log = document.getElementById('event-log');
+  const d = document.createElement('div'); d.textContent = msg;
+  log.prepend(d);
+  while (log.children.length > 15) log.removeChild(log.lastChild);
+}
+
+let tickCount = 0;
+function tick() {
+  if (paused) return;
+  tickCount++;
+  lotkaVolterra();
+  updateAgents();
+  if (tickCount % 5 === 0) syncAgents();
+
+  popHistory.plant.push(state.plant);
+  popHistory.prey.push(state.prey);
+  popHistory.pred.push(state.pred);
+  popHistory.hum.push(state.hum);
+  if (popHistory.plant.length > 200) Object.keys(popHistory).forEach(k => popHistory[k].shift());
+
+  year += 0.05;
+  // Events
+  if (tickCount % 40 === 0) {
+    if (state.prey < 5) addEvent(`Year ${year.toFixed(0)}: Prey near extinction!`);
+    if (state.pred < 2) addEvent(`Year ${year.toFixed(0)}: Predators gone!`);
+    if (state.plant < 10) addEvent(`Year ${year.toFixed(0)}: Plant collapse!`);
+    if (state.prey > 400) addEvent(`Year ${year.toFixed(0)}: Prey boom!`);
+  }
+
+  let status = 'Stable';
+  if (state.prey < 10 || state.plant < 20) status = 'Collapse!';
+  else if (state.prey > 300) status = 'Boom';
+  else if (totalHarvest > 500) status = 'Harvesting';
+
+  document.getElementById('p-plant').textContent = state.plant.toFixed(0);
+  document.getElementById('p-prey').textContent = state.prey.toFixed(0);
+  document.getElementById('p-pred').textContent = state.pred.toFixed(0);
+  document.getElementById('p-hum').textContent = state.hum.toFixed(0);
+  document.getElementById('p-year').textContent = year.toFixed(0);
+  document.getElementById('p-harv').textContent = totalHarvest.toFixed(0);
+  const statusEl = document.getElementById('p-status');
+  statusEl.textContent = status;
+  statusEl.className = `font-bold ${status==='Collapse!'?'text-red-400':status==='Boom'?'text-blue-400':'text-lime-400'}`;
+
+  draw();
+}
+
+function togglePause() {
+  paused = !paused;
+  document.getElementById('btn-pause').textContent = paused ? 'Resume' : 'Pause';
+}
+
+resetSim();
+setInterval(tick, 60);
+</script>
+</body>
+</html>
